@@ -25,7 +25,7 @@ Original contract in src/Bank.sol is unchanged except for formatting.
 
 ## Medium — B-05: No way to inspect accounting or recover access
 **Cause:** Both mappings are private-by-default (internal), without getters; FAILURE/CANCELLED cannot be set by normal public calls, and there is no individual withdrawal amount or receipt.
-**Proof:** `test_WithdrawalRevertsForAccountExplicitlyMarkedFailure` and `test_WithdrawalRevertsForAccountExplicitlyMarkedCancelled` require deliberate test-only storage setup.
+**Proof:** `test_ExactlyOneEtherDoesNotQualifyAnAccountMarkedFailure` uses test-only storage setup to demonstrate a non-success status; the production contract cannot enter FAILURE or CANCELLED through its public interface.
 **Fix:** Add `balanceOf(address)` and well-specified status views/events; remove unused statuses or implement controlled transitions. Explicitly document the meaning of `> 1 ether` versus `>= 1 ether`.
 
 ## Additional behavior
@@ -62,4 +62,8 @@ The regression tests labeled `_BUG` deliberately PASS by proving unsafe current 
 
 ## Test design note
 
-The readable regression suite is primarily black-box: assertions inspect transactions, contract ETH balance and recipient ETH balances, not private mappings. Only the helper `setUnreachableStatusForTest` uses `vm.store` to arrange FAILURE/CANCELLED states, which the contract itself does not expose. Consequently B-03 is demonstrated by repeated unauthorized payout, not by direct inspection of stale storage. All 15 tests pass and Foundry reports 100% line, statement, branch and function coverage for `src/Bank.sol`.
+The readable regression suite is primarily black-box: assertions inspect transactions, contract ETH balance and recipient ETH balances, not private mappings. Only the helper `setUnreachableStatusForTest` uses `vm.store` to arrange otherwise unreachable FAILURE/CANCELLED states, which the contract itself does not expose. Consequently B-03 is demonstrated by repeated unauthorized payout, not by direct inspection of stale storage. All 8 focused tests pass and Foundry reports 100% line, statement, branch and function coverage for `src/Bank.sol`.
+
+## Lean-suite revision
+
+Removed seven redundant checks (fresh balance, zero deposit, simple deposits, pooled balance, separate status-only rejection checks and zero-balance withdrawal). Eight distinct tests retain full source coverage and the major security reproductions.
